@@ -1,0 +1,206 @@
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+<style type="text/css"> body {padding: 10px 30px 10px 30px;} table,th, td {text-align: center;} </style>
+
+Household Consumption Regression Project
+========================================================
+
+**INSEAD MBA - Big Data and Analytics for Business Course Project**
+
+**Jakub Parusinski, Neelabh Chaturvedi, Onur Candar | February 2015**
+
+
+### Project Details 
+---------------------------------------------------------
+
+In fast growth countries, household consumption can boost the GDP growth. In this project, we want to understand which variables are influencing the household consumption of a country.
+
+We identified several factors that might influence the household consumption:
+- Demographics - Population, Age, Education and Urban Population
+- Macroeconomic Indicators - Inflation
+- Infrastructure Improvements - Shopping Mall Projects and Gross Leasable Area
+- Labor Statistics - Minimum Wage and Unemployment
+- Social Indicators - Happiness and Poverty
+
+Since any one of them may have an important impact, we gathered data on all of them at this early stage in the process.
+
+**The Data**
+
+In this project, we used Turkey as an example. However, same model can be applied on any country, by feeding the model with related country's data.
+
+The file *TR_Regression Data.cvs* includes eleven variables (twelve independent variables and the dependent variable TotalConsumption), covering the period from 2002 through 2013 for Turkey, one of these fast growing countries.
+
+Data is taken from Turkey's National Statistics Agency - TURKSTAT.
+
+A list of the variables is given below:
+
+1. Year - Year of Data Point
+2. Population - Total population of Turkey (in Millions)
+3. MedianAge - Median Age of the Turkish Population (Percentage * 100)
+4. IlleteracyRate - Overall Illiteracy Percentage of the Country (Multiplied by 100)
+5. Inflation - Annualized Inflation Rate (Percentage * 100)
+6. Unemployment - Percentage of Unemployment (Percentage * 100)
+7. MinimumWage - Minimum Monthly Wage in Turkish Liras (Nominal)
+8. PercentageOfUnderprivilaged - Percentage of Population Living for Under $4 per Day (Multiplied by 100)
+9. OverallHappiness - Total percentage of respondents who responded "Happy" and "Very Happy" to National Happiness Survey (Multiplied by 100)
+10. GLA - Gross Leasable Shopping Center Area
+11. ShoppingMall - Number of Shopping Malls
+12. UrbanPopulation - Percentage of Urban Population (Multiplied by 100)
+
+**The Analysis**
+
+Let's first see some summary statistics. 
+
+<div class="row">
+<div class="col-md-6">
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_summary = summary(ProjectData[,union(dependent_variable,all_variables),drop=F])
+print(xtable(data_summary, caption = "Summary Statistics", digits=3), type = "html", html.table.attributes = "class='table table-striped table-hover table-bordered'", caption.placement = "top", comment = FALSE, include.rownames = TRUE)
+```
+</div>
+</div>
+
+This is a histogram of our dependent variable `r dependent_variable`:
+
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+hist(ProjectData[,dependent_variable], main = paste("Histogram of", dependent_variable, sep=" "), xlab=dependent_variable,breaks = max(5,round(nrow(ProjectData)/5)))
+```
+
+
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+Sales = ProjectData[,dependent_variable]
+thedates=1:nrow(ProjectData)
+data.frame.series<-data.frame(Time=thedates, Values=Sales, row_names=rownames(ProjectData))
+```
+
+
+Let's now see the correlation between all our variables:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_reorder=cbind(ProjectData[,all_variables,drop=F],ProjectData[,dependent_variable,drop=F])
+thecor=round(cor(data_reorder),2)
+colnames(thecor)<-colnames(thecor)
+rownames(thecor)<-rownames(thecor)
+
+cat(renderHeatmapX(thecor, border=1))
+```
+
+and maybe a plot between our dependent variable and, say, the first variable `r colnames(ProjectData[,all_variables,drop=F])[1]`:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+yax=colnames(ProjectData[,all_variables,drop=F])[1]
+plot(ProjectData[,yax],ProjectData[,dependent_variable], xlab=yax, ylab=dependent_variable)
+```
+
+**Iterations**
+
+After multiple iterations, we decided to eliminate some variables (due to significance) and continue our studies with the following **independent variables**:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+
+if (length(independent_variables) == 1){ 
+  independent_var_to_see = paste(independent_variables,sep=", ")
+  } else {
+    res=paste(independent_variables[1], sep=", ")
+    for (iter in 2:(length(independent_variables)-1))
+      res=paste(res,independent_variables[iter],sep=", ")
+    independent_var_to_see = res  
+    }
+cat(independent_var_to_see)
+```
+
+Here is the correlation matrix between our **final variables**:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_reorder=cbind(ProjectData[,independent_variables,drop=F],ProjectData[,dependent_variable,drop=F])
+thecor=round(cor(data_reorder),2)
+colnames(thecor)<-colnames(thecor)
+rownames(thecor)<-rownames(thecor)
+
+cat(renderHeatmapX(thecor, border=1))
+```
+
+### Regression Model
+
+Our final **regression model** after the iterations is as the following:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+make_b <- function(i) paste("b", i, sep="")
+
+if (length(independent_variables) == 1){ 
+  regression_model_to_see = paste(dependent_variable, paste("b1",independent_variables,sep="*"), sep=" = ")
+  } else {
+    res=paste(make_b(1),independent_variables[1], sep="*")
+    for (iter in 2:(length(independent_variables)-1))
+      res=paste(res,paste(make_b(iter),independent_variables[iter],sep="*"), sep=" + ")
+    res=paste(res,paste(make_b(length(independent_variables)),tail(independent_variables,1),sep="*"), sep=" + ")
+    regression_model_to_see = paste(dependent_variable, res, sep=" = ")  
+    }
+cat(regression_model_to_see)
+```
+
+Let's see now the regression output for our choice of dependent and independent variables:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+if (length(independent_variables) == 1){ 
+  regression_model=paste(paste(dependent_variable, "~",sep=""), independent_variables,sep="")
+  } else {
+    res=independent_variables[1]
+    for (iter in 2:(length(independent_variables)-1))
+      res=paste(res,independent_variables[iter],sep="+")
+    res=paste(res,tail(independent_variables,1),sep="+")
+    regression_model = paste(dependent_variable, res, sep="~")  
+    }
+
+the_fit<-lm(regression_model,data=ProjectData)
+print_the_fit<-as.list(summary(the_fit))
+fit_table<-xtable(summary(the_fit),caption=paste("Regression Analysis - Dependent variable",dependent_variable, sep=""))
+print(fit_table,type="html",html.table.attributes = "class='table table-striped table-hover table-bordered'",caption.placement="top")
+```
+
+Residual standard error: `r sqrt(deviance(the_fit)/df.residual(the_fit))` on `r the_fit$df` degrees of freedom<br>
+Multiple R-squared: `r print_the_fit$r.squared` ,  Adjusted R-squared: `r print_the_fit$adj.r.squared` <br>
+F-statistic: `r print_the_fit$fstatistic["value"]` on   `r print_the_fit$fstatistic["numdf"]` and `r print_the_fit$fstatistic["dendf"]` <br>
+p-value: `r pf(print_the_fit$fstatistic[1], print_the_fit$fstatistic[2], print_the_fit$fstatistic[3],lower.tail = FALSE)` <br><br>
+
+
+**Residual Analysis**
+
+Let's look now at the residuals. Here are some plots and statistics.
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+
+the_residuals = residuals(the_fit) 
+
+thedates=1:nrow(ProjectData)
+data.frame.series<-data.frame(Time=thedates, Residual=the_residuals, row_names=rownames(ProjectData))
+```
+
+Of course we can make various plots of the residuals to "spot" (visually for now) and heteroskedasticity or autocorrelation. For example this is the plot of the residuals against the dependent variable `r dependent_variable`:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+plot(ProjectData[,dependent_variable],the_residuals,xlab=dependent_variable,ylab="Residuals")
+abline(0, 0, col="red")  
+```
+
+or the histogram of the residuals:
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+hist(the_residuals, main = "Histogram of the Residuals", xlab=dependent_variable,breaks = max(5,round(length(the_residuals)/5)))
+```
+
+### Interpretation
+
+According to our model, 3 independent variables - Minimum Wage, Percentage of Underprivileged among the Population, and Overall Happiness of the Society - explains the Total Consumptions. 
+
+These three variables, first addressing the increase in purchasing power, second suggesting decrease in income inequality and poverty, and third explaining the positive outlook of the society explains the growth of household consumption.
+
+However there are several problems which needs further studies to resolve:
+
+1- Minimum Wage and Percentage of Underprivileged are highly correlated, leading to Multicolinerity in the model. To increase the significance of the model, we decided to keep both variables in the model. By introduction of new independent variables, problem might be solved.
+
+2- The residuals are not distributed normally. Increasing the sample size from 11 to years to more might help to resolve this issue.
+
+3- We do not observe any heteroskedasticity, but our analysis only contain 11 years of data. By increasing the number of row, we might observe heteroskedasticity problems.
+
+Using this code, generated on R, it is possible to change the data set, introduce new variables, increase the sample size and re-run the application.

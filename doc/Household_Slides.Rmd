@@ -1,0 +1,184 @@
+---
+
+title : Household Consumption Regression Project
+author : Jakub Parusinski, Neelabh Chaturvedi, Onur Candar | February 2015
+job : INSEAD MBA - Big Data and Analytics for Business Course Project
+widgets : []
+mode : standalone 
+
+---
+
+## Project Details
+
+In fast growth countries, household consumption can boost the GDP growth. In this project, we want to understand which variables are influencing the household consumption of a country.
+
+---
+## Drivers
+
+We identified several factor which might influence the household consumption:
+- Demographics - Population, Age, Education and Urban Population
+- Macroeconomic Indicators - Inflation
+- Infrastructure Improvements - Shopping Mall Projects and Gross Leasable Area
+- Labor Statistics - Minimum Wage and Unemployment
+- Social Indicators - Happiness and Poverty
+
+---
+
+## The Data
+
+1. Year - Year of Data Point
+2. Population - Total population of Turkey (in Millions)
+3. MedianAge - Median Age of the Turkish Population (Percentage * 100)
+4. IlleteracyRate - Overall Illeteracy Percentage of the Country (Multiplied by 100)
+5. Inflation - Annualized Inflation Rate (Percentage * 100)
+6. Unemployment - Percentage of Unemployment (Percentage * 100)
+7. MinimumWage - Minimum Monthly Wage in Turkish Liras (Nominal)
+8. PercentageOfUnderprivilaged - Percentage of Population Living for Under $4 per Day (Multiplied by 100)
+9. OverallHappiness - Total percentage of respondents who responded "Happy" and "Very Happy" to National Happiness Survey (Multiplied by 100)
+10. GLA - Gross Leasable Shopping Center Area
+11. ShoppingMall - Number of Shopping Malls
+12. UrbanPopulation - Percentage of Urban Population (Multiplied by 100)
+
+---
+
+## Summary Statistics for All Variables
+
+<div class="row">
+<div class="col-md-6">
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_summary = summary(ProjectData[,union(dependent_variable,all_variables),drop=F])
+print(xtable(data_summary, caption = "Summary Statistics", digits=3), type = "html", html.table.attributes = "class='table table-striped table-hover table-bordered'", caption.placement = "top", comment = FALSE, include.rownames = TRUE)
+```
+</div>
+</div>
+
+---
+
+## Histogram of the Dependent Variable `r dependent_variable`
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+hist(ProjectData[,dependent_variable], main = paste("Histogram of", dependent_variable, sep=" "), xlab=dependent_variable,breaks = max(5,round(nrow(ProjectData)/5)))
+```
+
+---
+
+## Correlation Matrix for All Variables
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_reorder=cbind(ProjectData[,all_variables,drop=F],ProjectData[,dependent_variable,drop=F])
+thecor=cor(data_reorder)
+colnames(thecor)<-colnames(thecor)
+rownames(thecor)<-rownames(thecor)
+
+cat(renderHeatmapX(thecor, border=1))
+```
+
+---
+
+## Summary Statistics for Selected Independent Variables
+
+<div class="row">
+<div class="col-md-6">
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_summary = summary(ProjectData[,union(dependent_variable,independent_variables),drop=F])
+print(xtable(data_summary, caption = "Summary Statistics", digits=3), type = "html", html.table.attributes = "class='table table-striped table-hover table-bordered'", caption.placement = "top", comment = FALSE, include.rownames = TRUE)
+```
+</div>
+</div>
+
+---
+
+## Correlation Matrix for Selected Independent Variablrs
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+data_reorder=cbind(ProjectData[,independent_variables,drop=F],ProjectData[,dependent_variable,drop=F])
+thecor=cor(data_reorder)
+colnames(thecor)<-colnames(thecor)
+rownames(thecor)<-rownames(thecor)
+
+cat(renderHeatmapX(thecor, border=1))
+```
+
+---
+## Our Regression Model
+
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+
+if (length(independent_variables) == 1){ 
+  regression_model_to_see = paste(dependent_variable, paste("b1",independent_variables,sep="*"), sep=" = ")
+  } else {
+    res=paste(make_b(1),independent_variables[1], sep="*")
+    for (iter in 2:(length(independent_variables)-1))
+      res=paste(res,paste(make_b(iter),independent_variables[iter],sep="*"), sep=" + ")
+    res=paste(res,paste(make_b(length(independent_variables)),tail(independent_variables,1),sep="*"), sep=" + ")
+    regression_model_to_see = paste(dependent_variable, res, sep=" = ")  
+    }
+cat(regression_model_to_see)
+```
+
+
+
+---
+
+## Regression Output
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+if (length(independent_variables) == 1){ 
+  regression_model=paste(paste(dependent_variable, "~",sep=""), independent_variables,sep="")
+  } else {
+    res=independent_variables[1]
+    for (iter in 2:(length(independent_variables)-1))
+      res=paste(res,independent_variables[iter],sep="+")
+    res=paste(res,tail(independent_variables,1),sep="+")
+    regression_model = paste(dependent_variable, res, sep="~")  
+    }
+
+the_fit<-lm(regression_model,data=ProjectData)
+print_the_fit<-as.list(summary(the_fit))
+fit_table<-xtable(summary(the_fit),caption=paste("Regression Analysis - Dependent variable",dependent_variable, sep=""))
+print(fit_table,type="html",html.table.attributes = "class='table table-striped table-hover table-bordered'",caption.placement="top")
+```
+
+R-squared: `r print_the_fit$r.squared` ,  Adjusted R-squared: `r print_the_fit$adj.r.squared` 
+
+F-statistic: `r print_the_fit$fstatistic["value"]` with   `r print_the_fit$fstatistic["numdf"]` and `r print_the_fit$fstatistic["dendf"]` degrees of freedom 
+
+Residual standard error: `r sqrt(deviance(the_fit)/df.residual(the_fit))` with `r the_fit$df` degrees of freedom
+
+---
+
+
+## One of the many Residual plots...
+
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+plot(ProjectData[,dependent_variable],the_residuals,xlab=dependent_variable,ylab="Residuals")
+abline(0, 0, col="red")  
+```
+
+---
+
+## Histogram of the Residuals
+
+
+```{r echo=FALSE, comment=NA, warning=FALSE, message=FALSE,results='asis'}
+hist(the_residuals, main = "Histogram of the Residuals", xlab=dependent_variable,breaks = max(5,round(length(the_residuals)/5)))
+```
+
+---
+
+## Interpretation
+
+According to our model, 3 independent variables - Minimum Wage, Percentage of Underprivileged among the Population, and Overall Happiness of the Society - explains the Total Consumptions. 
+
+---
+
+## Further Studies
+
+However there are several problems which needs further studies to resolve:
+
+1- Minimum Wage and Percentage of Underprivileged are highly correlated, leading to Multicolinerity in the model. To increase the significance of the model, we decided to keep both variables in the model. By introduction of new independent variables, problem might be solved.
+
+2- The residuals are not distributed normally. Increasing the sample size from 11 to years to more might help to resolve this issue.
+
+3- We do not observe any heteroskedasticity, but our analysis only contain 11 years of data. By increasing the number of row, we might observe heteroskedasticity problems.
