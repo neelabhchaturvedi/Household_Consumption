@@ -36,19 +36,6 @@ all_variables <- c("Year", "MedianAge", "UrbanPopulation", "MinimumWage", "Infla
 # this loads the selected data
 ProjectData <- read.csv(paste("data", datafile_name, sep = "/"), sep=";", dec=",") # this contains only the matrix ProjectData
 
-###########################
-# Would you like to also start a web application on YOUR LOCAL COMPUTER once the report and slides are generated?
-# Select start_webapp <- 1 ONLY if you run the case on your local computer
-# NOTE: Running the web application on your LOCAL computer will open a new browser tab
-# Otherwise, when running on a server the application will be automatically available
-# through the ShinyApps directory
-
-# 1: start application on LOCAL computer, 0: do not start it
-# SELECT 0 if you are running the application on a server 
-# (DEFAULT is 0). 
-# NOTE: You need to make sure the shiny library is installing (see below)
-start_local_webapp <- 0
-
 ################################################
 # Now run everything
 
